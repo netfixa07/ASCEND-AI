@@ -266,79 +266,38 @@ export default function App() {
             <main className="flex-1 w-full relative">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(37,99,235,0.05),transparent_50%)] pointer-events-none" />
               <AnimatePresence mode="wait">
-                <TabsContent key="dashboard" value="dashboard" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <Dashboard />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="plan" value="plan" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <DailyPlanView />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="chat" value="chat" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 h-full min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="h-full">
-                    <MentorChat initialMessage={pendingMentorMessage} onMessageConsumed={() => setPendingMentorMessage(null)} />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="deep-analysis" value="deep-analysis" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <DeepAnalysis />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="future" value="future" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <FutureSimulator />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="missions" value="missions" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <MissionsSystem />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="profile-evolution" value="profile-evolution" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <EvolutionaryProfile />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="evolution" value="evolution" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <Evolution />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="challenges" value="challenges" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <Challenges />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="finance" value="finance" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <FinanceTracker />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="psychologist" value="psychologist" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <PsychologistIA />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="focus" value="focus" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <FocusMode />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="emotional" value="emotional" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full"
+                >
+                  {activeTab === 'dashboard' && <Dashboard />}
+                  {activeTab === 'plan' && <DailyPlanView />}
+                  {activeTab === 'chat' && (
+                    <div className="h-full">
+                      <MentorChat initialMessage={pendingMentorMessage} onMessageConsumed={() => setPendingMentorMessage(null)} />
+                    </div>
+                  )}
+                  {activeTab === 'deep-analysis' && <DeepAnalysis />}
+                  {activeTab === 'future' && <FutureSimulator />}
+                  {activeTab === 'missions' && <MissionsSystem />}
+                  {activeTab === 'profile-evolution' && <EvolutionaryProfile />}
+                  {activeTab === 'evolution' && <Evolution />}
+                  {activeTab === 'challenges' && <Challenges />}
+                  {activeTab === 'finance' && <FinanceTracker />}
+                  {activeTab === 'psychologist' && <PsychologistIA />}
+                  {activeTab === 'focus' && <FocusMode />}
+                  {activeTab === 'emotional' && (
                     <EmotionalSupport onTalkToMentor={(msg) => {
                       setPendingMentorMessage(msg);
                       setActiveTab('chat');
                     }} />
-                  </motion.div>
-                </TabsContent>
-                <TabsContent key="goals" value="goals" className="m-0 focus-visible:outline-none p-4 sm:p-6 md:p-10 lg:p-12 min-h-full">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <GoalPlanner />
-                  </motion.div>
-                </TabsContent>
+                  )}
+                  {activeTab === 'goals' && <GoalPlanner />}
+                </motion.div>
               </AnimatePresence>
             </main>
           </div>

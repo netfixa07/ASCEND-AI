@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache } from 'firebase/firestore';
 import firebaseConfigFromJson from '../../firebase-applet-config.json';
 
 // Helper to get env var or fallback, ensuring empty strings are treated as undefined
@@ -22,19 +22,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 // Use the database ID from JSON config
 const firestoreDatabaseId = firebaseConfigFromJson.firestoreDatabaseId;
-export const db = getFirestore(app, firestoreDatabaseId);
 
-// Enable offline persistence for faster "APK" sync times
-import { enableIndexedDbPersistence } from 'firebase/firestore';
-if (typeof window !== 'undefined') {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn("Persistence failed: Multiple tabs open");
-    } else if (err.code === 'unimplemented') {
-      console.warn("Persistence failed: Browser not supported");
-    }
-  });
-}
+// Initialize Firestore with persistent cache (replacing deprecated enableIndexedDbPersistence)
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({})
+}, firestoreDatabaseId);
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();

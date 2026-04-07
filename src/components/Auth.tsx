@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { auth, db } from '../lib/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, db, signIn as googleSignIn, handleFirestoreError, OperationType } from '../lib/firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -60,12 +60,21 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, formData.email, formData.password);
-        toast.success("Bem-vindo de volta!");
+        try {
+          await signInWithEmailAndPassword(auth, formData.email, formData.password);
+          toast.success("Bem-vindo de volta!");
+        } catch (loginError: any) {
+          // If user not found, suggest creating account
+          if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/invalid-credential') {
+            throw new Error("E-mail ou senha incorretos. Se você é novo, crie uma conta.");
+          }
+          throw loginError;
+        }
       } else {
         // Validation
-        if (formData.cpf.length !== 14) {
-          toast.error("CPF inválido. Use o padrão XXX.XXX.XXX-XX");
+        const cleanCPF = formData.cpf.replace(/\D/g, '');
+        if (cleanCPF.length !== 11) {
+          toast.error("CPF inválido. Digite os 11 números.");
           setLoading(false);
           return;
         }
@@ -111,44 +120,46 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
           toast.success("Conta criada com sucesso!");
         } catch (dbError: any) {
           console.error("Database error during signup:", dbError);
-          // Use our standard error handler for better diagnostics
-          try {
-            const { handleFirestoreError, OperationType } = await import('../contexts/ProfileContext');
-            handleFirestoreError(dbError, OperationType.WRITE, `users/${user.uid}`);
-          } catch (e) {
-            // Fallback if context is not available
-          }
+          handleFirestoreError(dbError, OperationType.WRITE, `users/${user.uid}`);
           toast.warning("Conta criada, mas houve um erro ao salvar o perfil. Tente completar o cadastro.");
         }
       }
       
-      // Only call onComplete for login. 
-      // For signup, App.tsx will react to the user state change automatically.
       onComplete(isLogin);
     } catch (error: any) {
-      console.error("Auth error details:", {
-        code: error.code,
-        message: error.message,
-        email: formData.email,
-        isLogin
-      });
-      let message = "Erro na autenticação";
-      
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        message = isLogin 
-          ? "E-mail ou senha incorretos. Se você acabou de resetar o app, crie uma nova conta."
-          : "Erro ao criar conta. Verifique os dados e tente novamente.";
-      } else if (error.code === 'auth/email-already-in-use') {
-        message = "Este e-mail já está em uso.";
-      } else if (error.code === 'auth/weak-password') {
-        message = "A senha deve ter pelo menos 6 caracteres.";
-      } else if (error.message) {
-        message = error.message;
-      }
-      
-      toast.error(message);
+      console.error("Auth error:", error);
+      toast.error(error.message || "Erro na autenticação. Verifique seus dados.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      await googleSignIn();
+      toast.success("Login com Google realizado!");
+      onComplete(true);
+    } catch (error: any) {
+      console.error("Google Auth error:", error);
+      if (error.code !== 'auth/popup-closed-by-user') {
+        toast.error("Erro ao entrar com Google. Tente e-mail e senha.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      toast.error("Digite seu e-mail primeiro.");
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, formData.email);
+      toast.success("E-mail de recuperação enviado!");
+    } catch (error: any) {
+      toast.error("Erro ao enviar e-mail: " + (error.message || "tente novamente."));
     }
   };
 
@@ -261,7 +272,18 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-zinc-400">Senha</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-zinc-400">Senha</Label>
+                    {isLogin && (
+                      <button 
+                        type="button" 
+                        onClick={handleForgotPassword}
+                        className="text-xs text-blue-500 hover:text-blue-400 font-medium"
+                      >
+                        Esqueceu a senha?
+                      </button>
+                    )}
+                  </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 w-5 h-5 text-zinc-600" />
                     <Input
@@ -286,13 +308,36 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
                 {!loading && <ArrowRight className="ml-2 w-5 h-5" />}
               </Button>
 
-              <div className="text-center">
+              <div className="relative py-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-zinc-800"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-zinc-950 px-2 text-zinc-500">Ou continue com</span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="w-full border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900 text-white h-12 rounded-xl"
+              >
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-2" referrerPolicy="no-referrer" />
+                Google
+              </Button>
+
+              <div className="text-center pt-2">
+                <p className="text-zinc-500 text-sm mb-2">
+                  {isLogin ? 'Novo por aqui?' : 'Já possui uma conta?'}
+                </p>
                 <button
                   type="button"
                   onClick={() => setIsLogin(!isLogin)}
-                  className="text-zinc-500 hover:text-white text-sm font-medium transition-colors"
+                  className="w-full py-3 border border-zinc-800 rounded-xl text-white text-sm font-bold hover:bg-zinc-900 transition-all"
                 >
-                  {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre agora'}
+                  {isLogin ? 'CRIAR NOVA CONTA AGORA' : 'VOLTAR PARA O LOGIN'}
                 </button>
               </div>
             </form>

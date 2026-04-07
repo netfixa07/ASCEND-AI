@@ -30,9 +30,21 @@ REGRAS DE OURO:
 FRASE GUIA: "A ASCEND AI não apenas te ajuda... ela evolui com você."
 `;
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let genAI: GoogleGenAI | null = null;
+
+function getGenAI() {
+  if (!genAI) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not defined. Please set it in your environment variables.");
+    }
+    genAI = new GoogleGenAI({ apiKey });
+  }
+  return genAI;
+}
 
 export const getMentorResponse = async (prompt: string, history: any[] = [], userData?: any) => {
+  const ai = getGenAI();
   const model = "gemini-3-flash-preview";
   
   const approachInstructions = userData?.aiApproach ? `
@@ -69,6 +81,7 @@ export const getMentorResponse = async (prompt: string, history: any[] = [], use
 };
 
 export const generateDailyPlan = async (userData: any) => {
+  const ai = getGenAI();
   const model = "gemini-3-flash-preview";
   const prompt = `Com base nos dados do usuário: ${JSON.stringify(userData)}, gere um plano diário prático em formato JSON com a seguinte estrutura:
   {
@@ -98,6 +111,7 @@ export const generateDailyPlan = async (userData: any) => {
 };
 
 export const generate30DayChallenge = async (userData: any) => {
+  const ai = getGenAI();
   const model = "gemini-3-flash-preview";
   const prompt = `Com base nos dados do usuário: ${JSON.stringify(userData)}, gere um desafio de 30 dias personalizado. O usuário quer melhorar em: ${userData.goals}.
   
@@ -136,6 +150,7 @@ export const generate30DayChallenge = async (userData: any) => {
 };
 
 export const analyzeRootCause = async (userData: any, problem: string, history: any[] = []) => {
+  const ai = getGenAI();
   const model = "gemini-3-flash-preview";
   const prompt = `O usuário está relatando o seguinte problema: "${problem}". 
   Como especialista em análise comportamental, conduza uma análise profunda para encontrar a RAIZ DO PROBLEMA.
@@ -171,6 +186,7 @@ export const analyzeRootCause = async (userData: any, problem: string, history: 
 };
 
 export const simulateFuture = async (userData: any) => {
+  const ai = getGenAI();
   const model = "gemini-3-flash-preview";
   const prompt = `Com base nos dados atuais do usuário: ${JSON.stringify(userData)}, projete o futuro dele em 1 ano, 5 anos e 10 anos.
   Gere dois cenários:
@@ -210,6 +226,7 @@ export const simulateFuture = async (userData: any) => {
 };
 
 export const generateMissions = async (userData: any) => {
+  const ai = getGenAI();
   const model = "gemini-3-flash-preview";
   const prompt = `Gere 3 missões estratégicas para o usuário com base no seu perfil: ${JSON.stringify(userData)}.
   
@@ -253,6 +270,7 @@ export const generateMissions = async (userData: any) => {
 };
 
 export const updateEvolutionaryProfile = async (userData: any, actions: any[]) => {
+  const ai = getGenAI();
   const model = "gemini-3-flash-preview";
   const prompt = `Analise o histórico recente de ações do usuário: ${JSON.stringify(actions)}.
   Com base nos dados do perfil: ${JSON.stringify(userData)}, atualize a classificação evolutiva dele.
@@ -304,6 +322,7 @@ FRASE GUIA: "Você não está sozinho. Aqui, você é compreendido."
 `;
 
 export const getPsychologistResponse = async (prompt: string, history: any[] = [], userData?: any) => {
+  const ai = getGenAI();
   const model = "gemini-3-flash-preview";
   
   const context = `

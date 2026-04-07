@@ -252,6 +252,7 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
                         <Input
                           name="fullName"
                           placeholder="Seu nome completo"
+                          autoComplete="name"
                           value={formData.fullName}
                           onChange={handleInputChange}
                           required={!isLogin}
@@ -281,6 +282,7 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
                           <Input
                             name="phone"
                             placeholder="(00) 00000-0000"
+                            autoComplete="tel"
                             value={formData.phone}
                             onChange={handleInputChange}
                             required={!isLogin}
@@ -302,6 +304,7 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
                       name="email"
                       type="email"
                       placeholder="seu@email.com"
+                      autoComplete="email"
                       value={formData.email}
                       onChange={handleInputChange}
                       required
@@ -328,6 +331,7 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
                       name="password"
                       type="password"
                       placeholder="••••••••"
+                      autoComplete={isLogin ? "current-password" : "new-password"}
                       value={formData.password}
                       onChange={handleInputChange}
                       required

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { auth, db, signIn as googleSignIn, handleFirestoreError, OperationType } from '../lib/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { auth, db, signInWithGoogle, loginWithEmail, registerWithEmail, handleFirestoreError, OperationType } from '../lib/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -61,12 +61,15 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
     try {
       if (isLogin) {
         try {
-          await signInWithEmailAndPassword(auth, formData.email, formData.password);
+          await loginWithEmail(formData.email, formData.password);
           toast.success("Bem-vindo de volta!");
         } catch (loginError: any) {
-          // If user not found, suggest creating account
-          if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/invalid-credential') {
-            throw new Error("E-mail ou senha incorretos. Se você é novo, crie uma conta.");
+          console.error("Login error details:", loginError);
+          if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/invalid-credential' || loginError.code === 'auth/wrong-password') {
+            throw new Error("E-mail ou senha incorretos. Verifique seus dados ou crie uma conta.");
+          }
+          if (loginError.code === 'auth/too-many-requests') {
+            throw new Error("Muitas tentativas falhas. Tente novamente mais tarde ou recupere sua senha.");
           }
           throw loginError;
         }
@@ -79,7 +82,13 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
           return;
         }
 
-        const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+        if (formData.password.length < 6) {
+          toast.error("A senha deve ter pelo menos 6 caracteres.");
+          setLoading(false);
+          return;
+        }
+
+        const userCredential = await registerWithEmail(formData.email, formData.password);
         const user = userCredential.user;
 
         // Create initial profile
@@ -128,7 +137,8 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
       onComplete(isLogin);
     } catch (error: any) {
       console.error("Auth error:", error);
-      toast.error(error.message || "Erro na autenticação. Verifique seus dados.");
+      const message = error.message || "Erro na autenticação. Verifique sua conexão e tente novamente.";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -137,12 +147,40 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      await googleSignIn();
+      const result = await signInWithGoogle();
+      const user = result.user;
+      
+      // Check if profile exists, if not create a basic one
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        await setDoc(docRef, {
+          uid: user.uid,
+          displayName: user.displayName || 'Usuário',
+          email: user.email,
+          photoURL: user.photoURL,
+          onboardingComplete: false,
+          streak: 0,
+          xp: 0,
+          level: 1,
+          missionsCompleted: 0,
+          mentalLevel: 1,
+          physicalScore: 10,
+          lastCheckIn: new Date().toISOString(),
+          theme: 'dark'
+        }, { merge: true });
+      }
+
       toast.success("Login com Google realizado!");
       onComplete(true);
     } catch (error: any) {
       console.error("Google Auth error:", error);
-      if (error.code !== 'auth/popup-closed-by-user') {
+      if (error.code === 'auth/popup-closed-by-user') {
+        toast.info("Login cancelado.");
+      } else if (error.code === 'auth/unauthorized-domain') {
+        toast.error("Este domínio não está autorizado para login com Google. Verifique as configurações do Firebase.");
+      } else {
         toast.error("Erro ao entrar com Google. Tente e-mail e senha.");
       }
     } finally {

@@ -19,6 +19,10 @@ const firebaseConfig = {
   measurementId: firebaseConfigFromJson.measurementId,
 };
 
+if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("TODO")) {
+  console.warn("Firebase API Key is missing or invalid. Authentication may fail.");
+}
+
 const app = initializeApp(firebaseConfig);
 // Use the database ID from JSON config
 const firestoreDatabaseId = firebaseConfigFromJson.firestoreDatabaseId;
@@ -31,7 +35,9 @@ export const db = initializeFirestore(app, {
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-export const signIn = () => signInWithPopup(auth, googleProvider);
+export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
+export const loginWithEmail = (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass);
+export const registerWithEmail = (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass);
 export const logOut = () => signOut(auth);
 
 export enum OperationType {

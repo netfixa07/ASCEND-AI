@@ -90,3 +90,30 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
+
+export function handleAuthError(error: any): string {
+  const code = error.code;
+  switch (code) {
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return "E-mail ou senha incorretos. Verifique seus dados ou crie uma conta.";
+    case 'auth/email-already-in-use':
+      return "Este e-mail já está em uso. Tente fazer login ou use outro e-mail.";
+    case 'auth/invalid-email':
+      return "E-mail inválido. Verifique o formato digitado.";
+    case 'auth/weak-password':
+      return "A senha é muito fraca. Use pelo menos 6 caracteres.";
+    case 'auth/too-many-requests':
+      return "Muitas tentativas falhas. Tente novamente mais tarde ou recupere sua senha.";
+    case 'auth/unauthorized-domain':
+      const domain = typeof window !== 'undefined' ? window.location.hostname : 'este domínio';
+      return `Este domínio (${domain}) não está autorizado para login com Google. Adicione-o no Console do Firebase (Autenticação > Configurações > Domínios autorizados).`;
+    case 'auth/popup-closed-by-user':
+      return "Login cancelado.";
+    case 'auth/network-request-failed':
+      return "Erro de conexão. Verifique sua internet.";
+    default:
+      return error.message || "Erro na autenticação. Tente novamente.";
+  }
+}

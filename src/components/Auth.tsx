@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { auth, db, signInWithGoogle, loginWithEmail, registerWithEmail, handleFirestoreError, OperationType } from '../lib/firebase';
+import { auth, db, signInWithGoogle, loginWithEmail, registerWithEmail, handleFirestoreError, OperationType, handleAuthError } from '../lib/firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Button } from './ui/button';
@@ -60,19 +60,8 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
 
     try {
       if (isLogin) {
-        try {
-          await loginWithEmail(formData.email, formData.password);
-          toast.success("Bem-vindo de volta!");
-        } catch (loginError: any) {
-          console.error("Login error details:", loginError);
-          if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/invalid-credential' || loginError.code === 'auth/wrong-password') {
-            throw new Error("E-mail ou senha incorretos. Verifique seus dados ou crie uma conta.");
-          }
-          if (loginError.code === 'auth/too-many-requests') {
-            throw new Error("Muitas tentativas falhas. Tente novamente mais tarde ou recupere sua senha.");
-          }
-          throw loginError;
-        }
+        await loginWithEmail(formData.email, formData.password);
+        toast.success("Bem-vindo de volta!");
       } else {
         // Validation
         const cleanCPF = formData.cpf.replace(/\D/g, '');
@@ -137,7 +126,7 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
       onComplete(isLogin);
     } catch (error: any) {
       console.error("Auth error:", error);
-      const message = error.message || "Erro na autenticação. Verifique sua conexão e tente novamente.";
+      const message = handleAuthError(error);
       toast.error(message);
     } finally {
       setLoading(false);
@@ -176,13 +165,8 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
       onComplete(true);
     } catch (error: any) {
       console.error("Google Auth error:", error);
-      if (error.code === 'auth/popup-closed-by-user') {
-        toast.info("Login cancelado.");
-      } else if (error.code === 'auth/unauthorized-domain') {
-        toast.error("Este domínio não está autorizado para login com Google. Verifique as configurações do Firebase.");
-      } else {
-        toast.error("Erro ao entrar com Google. Tente e-mail e senha.");
-      }
+      const message = handleAuthError(error);
+      toast.error(message);
     } finally {
       setLoading(false);
     }

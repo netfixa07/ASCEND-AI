@@ -21,6 +21,7 @@ export default function Challenges() {
   const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isAbandonConfirmOpen, setIsAbandonConfirmOpen] = useState(false);
   const [customChallenge, setCustomChallenge] = useState({
     title: '',
     description: '',
@@ -108,12 +109,11 @@ export default function Challenges() {
 
   const abandonChallenge = async () => {
     if (!profile) return;
-    if (confirm("Tem certeza que deseja abandonar este desafio? Seu progresso será perdido.")) {
-      try {
-        await deleteDoc(doc(db, 'activeChallenges', profile.uid));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, `activeChallenges/${profile.uid}`);
-      }
+    try {
+      await deleteDoc(doc(db, 'activeChallenges', profile.uid));
+      setIsAbandonConfirmOpen(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `activeChallenges/${profile.uid}`);
     }
   };
 
@@ -237,12 +237,33 @@ export default function Challenges() {
             </div>
 
             <div className="flex justify-center pt-4">
-              <Button variant="ghost" onClick={abandonChallenge} className="text-zinc-400 hover:text-red-600 dark:hover:text-red-500 hover:bg-red-500/5 dark:hover:bg-red-500/10 font-bold">
+              <Button variant="ghost" onClick={() => setIsAbandonConfirmOpen(true)} className="text-zinc-400 hover:text-red-600 dark:hover:text-red-500 hover:bg-red-500/5 dark:hover:bg-red-500/10 font-bold">
                 Abandonar Desafio
               </Button>
             </div>
           </CardContent>
         </Card>
+
+        {/* Abandon Confirmation Dialog */}
+        <Dialog open={isAbandonConfirmOpen} onOpenChange={setIsAbandonConfirmOpen}>
+          <DialogContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white max-w-md rounded-[2rem]">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black tracking-tight text-red-500">ABANDONAR DESAFIO</DialogTitle>
+              <DialogDescription className="text-zinc-500 dark:text-zinc-400">
+                Tem certeza que deseja abandonar este desafio? Todo o seu progresso atual será perdido permanentemente.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 pt-4">
+              <Button variant="outline" onClick={() => setIsAbandonConfirmOpen(false)} className="border-zinc-200 dark:border-zinc-800 rounded-xl">CANCELAR</Button>
+              <Button 
+                onClick={abandonChallenge}
+                className="bg-red-600 hover:bg-red-700 text-white font-black rounded-xl"
+              >
+                ABANDONAR
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

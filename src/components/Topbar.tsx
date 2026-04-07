@@ -28,6 +28,9 @@ export default function Topbar({ profile }: TopbarProps) {
   const [showDataSettings, setShowDataSettings] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  
   // Local state for profile edits
   const [localProfile, setLocalProfile] = useState({
     displayName: profile.displayName || '',
@@ -95,19 +98,17 @@ export default function Topbar({ profile }: TopbarProps) {
       return;
     }
 
+    if (deleteConfirmText !== "EXCLUIR") {
+      toast.error("Você deve digitar EXCLUIR para confirmar.");
+      return;
+    }
+
     try {
-      const confirmText = "EXCLUIR";
-      const userInput = prompt(`Para confirmar a exclusão permanente de todos os seus dados, digite "${confirmText}":`);
-      
-      if (userInput === confirmText) {
-        toast.loading("Excluindo seus dados...");
-        await deleteDoc(doc(db, 'users', auth.currentUser.uid));
-        await logOut();
-        toast.success("Todos os seus dados foram apagados permanentemente.");
-        window.location.reload();
-      } else {
-        toast.info("Exclusão cancelada.");
-      }
+      toast.loading("Excluindo seus dados...");
+      await deleteDoc(doc(db, 'users', auth.currentUser.uid));
+      await logOut();
+      toast.success("Todos os seus dados foram apagados permanentemente.");
+      window.location.reload();
     } catch (error) {
       console.error("Error deleting data:", error);
       toast.error("Erro ao excluir dados. Tente novamente.");
@@ -639,12 +640,45 @@ export default function Topbar({ profile }: TopbarProps) {
               </div>
             ))}
             <button 
-              onClick={handleDeleteData}
+              onClick={() => setShowDeleteConfirm(true)}
               className="w-full bg-red-600/10 text-red-500 border border-red-600/20 hover:bg-red-600/20 font-bold mt-4 py-3 rounded-xl transition-all"
             >
               EXCLUIR TODOS OS MEUS DADOS
             </button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="bg-zinc-950 border-zinc-800 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black tracking-tighter text-red-500">EXCLUIR DADOS PERMANENTEMENTE</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Esta ação não pode ser desfeita. Todos os seus planos, chats e progresso serão apagados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-zinc-300">
+              Para confirmar, digite <span className="font-black text-white">EXCLUIR</span> abaixo:
+            </p>
+            <Input 
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="Digite EXCLUIR"
+              className="bg-zinc-900 border-zinc-800 text-white"
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} className="border-zinc-800">CANCELAR</Button>
+            <Button 
+              onClick={handleDeleteData}
+              disabled={deleteConfirmText !== "EXCLUIR"}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold"
+            >
+              EXCLUIR TUDO
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </header>

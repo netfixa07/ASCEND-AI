@@ -1,0 +1,194 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user diagnostic data, goals, and current levels.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "fullName": { "type": "string" },
+        "cpf": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "onboardingComplete": { "type": "boolean" },
+        "routine": { "type": "string" },
+        "habits": { "type": "string" },
+        "physicalLevel": { "type": "string" },
+        "mentalLevel": { "type": "number" },
+        "physicalScore": { "type": "number" },
+        "productivityScore": { "type": "number" },
+        "goals": { "type": "string" },
+        "streak": { "type": "number" },
+        "xp": { "type": "number" },
+        "level": { "type": "number" },
+        "missionsCompleted": { "type": "number" },
+        "lastCheckIn": { "type": "string", "format": "date-time" },
+        "lastEmotionalCheckIn": {
+          "type": "object",
+          "properties": {
+            "state": { "type": "string" },
+            "intensity": { "type": "number" },
+            "timestamp": { "type": "string", "format": "date-time" }
+          }
+        }
+      },
+      "required": ["uid", "onboardingComplete"]
+    },
+    "Goal": {
+      "title": "Goal",
+      "description": "User's goals and progress tracking.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "targetDate": { "type": "string" },
+        "category": { "type": "string", "enum": ["personal", "professional", "health", "financial"] },
+        "status": { "type": "string", "enum": ["active", "completed"] },
+        "progress": { "type": "number" },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "completed": { "type": "boolean" }
+            }
+          }
+        }
+      },
+      "required": ["uid", "title", "targetDate", "status"]
+    },
+    "FinancialLog": {
+      "title": "Financial Log",
+      "description": "Income and expense records.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "type", "amount", "date"]
+    },
+    "EmotionalLog": {
+      "title": "Emotional Log",
+      "description": "History of emotional check-ins.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "state": { "type": "string" },
+        "intensity": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "state", "intensity", "timestamp"]
+    },
+    "DailyPlan": {
+      "title": "Daily Plan",
+      "description": "Stores the daily tasks and AI feedback for a user.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "date": { "type": "string" },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "time": { "type": "string" },
+              "description": { "type": "string" },
+              "completed": { "type": "boolean" },
+              "category": { "type": "string" }
+            }
+          }
+        },
+        "aiFeedback": { "type": "string" },
+        "completedCount": { "type": "number" }
+      },
+      "required": ["uid", "date"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "Stores messages between the user and the ASCEND AI mentor.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "role", "content", "timestamp"]
+    },
+    "EvolutionLog": {
+      "title": "Evolution Log",
+      "description": "Historical data for progress tracking.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "date": { "type": "string" },
+        "mentalScore": { "type": "number" },
+        "physicalScore": { "type": "number" },
+        "productivityScore": { "type": "number" }
+      },
+      "required": ["uid", "date"]
+    },
+    "ActiveChallenge": {
+      "title": "Active Challenge",
+      "description": "Stores the user's current 30-day challenge progress.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "progress": { "type": "number" },
+        "lastCompletedDate": { "type": "string" },
+        "dailyTask": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "required": ["uid", "title", "startDate", "progress"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profile and diagnostic data."
+    },
+    "/dailyPlans/{planId}": {
+      "schema": "DailyPlan",
+      "description": "Daily tasks and feedback."
+    },
+    "/chats/{chatId}": {
+      "schema": "ChatMessage",
+      "description": "Chat history with the AI mentor."
+    },
+    "/evolution/{logId}": {
+      "schema": "EvolutionLog",
+      "description": "Historical evolution data."
+    },
+    "/activeChallenges/{uid}": {
+      "schema": "ActiveChallenge",
+      "description": "The user's current 30-day challenge."
+    },
+    "/goals/{goalId}": {
+      "schema": "Goal",
+      "description": "User goals and progress."
+    },
+    "/financialLogs/{logId}": {
+      "schema": "FinancialLog",
+      "description": "User financial records."
+    },
+    "/emotionalLogs/{logId}": {
+      "schema": "EmotionalLog",
+      "description": "User emotional check-in history."
+    }
+  }
+}

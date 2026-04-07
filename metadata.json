@@ -1,0 +1,7 @@
+{
+  "name": "ASCEND AI",
+  "description": "Transformação humana de alta performance: Mentor de disciplina, estrategista de vida e treinador mental.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

@@ -116,7 +116,8 @@ export function handleAuthError(error: any): string {
       return "Muitas tentativas falhas. Tente novamente mais tarde ou recupere sua senha.";
     case 'auth/unauthorized-domain':
       const domain = typeof window !== 'undefined' ? window.location.hostname : 'este domínio';
-      return `Este domínio (${domain}) não está autorizado para login com Google. No Console do Firebase, adicione EXATAMENTE "${domain}" em Autenticação > Configurações > Domínios autorizados.`;
+      const projectId = firebaseConfigFromJson.projectId;
+      return `O domínio "${domain}" não está autorizado no projeto Firebase "${projectId}". No Console do Firebase, certifique-se de que você adicionou EXATAMENTE "${domain}" em Autenticação > Configurações > Domínios autorizados para o projeto correto.`;
     case 'auth/popup-closed-by-user':
       return "Login cancelado pelo usuário.";
     case 'auth/network-request-failed':

@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { initializeFirestore, persistentLocalCache } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, doc, getDocFromCache, getDocFromServer } from 'firebase/firestore';
 import firebaseConfigFromJson from '../../firebase-applet-config.json';
 
 // Helper to get env var or fallback, ensuring empty strings are treated as undefined
@@ -34,6 +34,22 @@ export const db = initializeFirestore(app, {
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+// Test connection to Firestore
+async function testConnection() {
+  try {
+    // Try to get a non-existent doc just to check connectivity
+    await getDocFromServer(doc(db, '_internal_', 'connection_test'));
+    console.log("Conexão com Firestore estabelecida com sucesso.");
+  } catch (error: any) {
+    if (error.message && error.message.includes('the client is offline')) {
+      console.error("Erro de conexão: O cliente está offline ou a configuração do Firebase está incorreta.");
+    } else {
+      console.log("Teste de conexão Firestore (esperado):", error.message);
+    }
+  }
+}
+testConnection();
 
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const loginWithEmail = (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass);
@@ -105,7 +121,7 @@ export function handleAuthError(error: any): string {
     case 'auth/user-not-found':
     case 'auth/wrong-password':
     case 'auth/invalid-credential':
-      return "E-mail ou senha incorretos. Verifique seus dados ou crie uma conta.";
+      return "E-mail ou senha incorretos. Como mudamos para um novo projeto Firebase para corrigir o domínio, você pode precisar CRIAR UMA CONTA NOVA se ainda não o fez hoje.";
     case 'auth/email-already-in-use':
       return "Este e-mail já está em uso. Tente fazer login ou use outro e-mail.";
     case 'auth/invalid-email':

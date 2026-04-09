@@ -10,6 +10,7 @@ import { Zap, Mail, Lock, User, CreditCard, Phone, ArrowRight, ArrowLeft } from 
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { Logo } from './Logo';
+import firebaseConfigFromJson from '../../firebase-applet-config.json';
 
 interface AuthProps {
   onComplete: (isLogin: boolean) => void;
@@ -57,22 +58,26 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const email = formData.email.trim();
+    const password = formData.password.trim();
+
     // Basic validation for both login and signup
-    if (!formData.email || !formData.email.includes('@')) {
+    if (!email || !email.includes('@')) {
       toast.error("Por favor, insira um e-mail válido.");
       return;
     }
     
-    if (!formData.password || formData.password.length < 6) {
+    if (!password || password.length < 6) {
       toast.error("A senha deve ter pelo menos 6 caracteres.");
       return;
     }
 
     setLoading(true);
+    console.log("Tentando login no projeto:", firebaseConfigFromJson.projectId);
 
     try {
       if (isLogin) {
-        await loginWithEmail(formData.email, formData.password);
+        await loginWithEmail(email, password);
         toast.success("Bem-vindo de volta!");
       } else {
         // Signup specific validation
@@ -89,7 +94,7 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
           return;
         }
 
-        const userCredential = await registerWithEmail(formData.email, formData.password);
+        const userCredential = await registerWithEmail(email, password);
         const user = userCredential.user;
 
         // Create initial profile

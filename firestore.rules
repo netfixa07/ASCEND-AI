@@ -1,318 +1,186 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {uid}
+// Fields:
+//   - uid: string (required)
+//   - displayName: string
+//   - fullName: string
+//   - cpf: string
+//   - phone: string
+//   - email: string
+//   - onboardingComplete: boolean (required)
+//   - mentalLevel: number
+//   - physicalScore: number
+//   - streak: number
+//   - xp: number
+//   - level: number
+//   - missionsCompleted: number
+//   - lastCheckIn: string (ISO 8601)
+//
+// Collection: dailyPlans
+// Document ID: {planId}
+// Fields:
+//   - uid: string (required)
+//   - date: string (required)
+//   - tasks: list of maps
+//   - aiFeedback: string
+//   - completedCount: number
+//
+// Collection: chats
+// Document ID: {chatId}
+// Fields:
+//   - uid: string (required)
+//   - role: string (required, 'user' or 'model')
+//   - content: string (required)
+//   - timestamp: string (required, ISO 8601)
+//
+// Collection: goals
+// Document ID: {goalId}
+// Fields:
+//   - uid: string (required)
+//   - title: string (required)
+//   - status: string (required, 'active' or 'completed')
+//
+// ===============================================================
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
     // ===============================================================
     // Helper Functions
     // ===============================================================
+
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
-    
+
     function isDocOwner() {
-      return isAuthenticated() && (resource == null || resource.data.uid == request.auth.uid);
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
     }
-    
+
     function isRequestOwner() {
-      return isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      return isAuthenticated() && request.auth.uid == request.resource.data.uid;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "netfixa07@gmail.com" && request.auth.token.email_verified == true);
     }
 
     // ===============================================================
     // Domain Validators
     // ===============================================================
-    
-    function isAdmin() {
-      return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin' ||
-          (request.auth.token.email == "netfixa07@gmail.com" && request.auth.token.email_verified == true));
-    }
 
     function isValidUser(data) {
-      let allowedFields = [
-        'uid', 'displayName', 'email', 'photoURL', 'nickname', 'bio', 
-        'aiApproach', 'theme', 'notifications', 'onboardingComplete', 
-        'routine', 'habits', 'physicalLevel', 'mentalLevel', 'physicalScore', 
-        'productivityScore', 'goals', 'streak', 'xp', 'level', 'missionsCompleted',
-        'lastCheckIn', 'interfaceSettings', 
-        'privacySettings', 'currentPlan', 'planExpiryDate', 'userProfileType', 
-        'financialBalance', 'lastEmotionalCheckIn', 'fullName', 'cpf', 'phone', 
-        'timeAvailable', 'id', 'createdAt', 'updatedAt', 'role',
-        'evolutionaryProfile', 'pressureMode', 'deepAnalysisHistory'
-      ];
-      
-      let d = data;
-      return d.keys().hasOnly(allowedFields) &&
-             d.get('uid', null) == request.auth.uid &&
-             (d.get('email', null) == null || (d.get('email', null) is string && d.get('email', null).size() < 100)) &&
-             (d.get('displayName', null) == null || (d.get('displayName', null) is string && d.get('displayName', null).size() < 100)) &&
-             (d.get('photoURL', null) == null || (d.get('photoURL', null) is string && d.get('photoURL', null).size() < 1000000)) &&
-             (d.get('nickname', null) == null || (d.get('nickname', null) is string && d.get('nickname', null).size() < 50)) &&
-             (d.get('bio', null) == null || (d.get('bio', null) is string && d.get('bio', null).size() < 500)) &&
-             (d.get('aiApproach', null) == null || d.get('aiApproach', null) in ['direct', 'encouraging', 'philosophical', 'hardcore']) &&
-             (d.get('theme', null) == null || d.get('theme', null) in ['light', 'dark', 'system']) &&
-             (d.get('onboardingComplete', null) == null || d.get('onboardingComplete', null) is bool) &&
-             (d.get('fullName', null) == null || (d.get('fullName', null) is string && d.get('fullName', null).size() < 100)) &&
-             (d.get('cpf', null) == null || (d.get('cpf', null) is string && d.get('cpf', null).size() < 20)) &&
-             (d.get('phone', null) == null || (d.get('phone', null) is string && d.get('phone', null).size() < 20)) &&
-             (d.get('streak', null) == null || d.get('streak', null) is number) &&
-             (d.get('xp', null) == null || d.get('xp', null) is number) &&
-             (d.get('level', null) == null || d.get('level', null) is number) &&
-             (d.get('missionsCompleted', null) == null || d.get('missionsCompleted', null) is number) &&
-             (d.get('mentalLevel', null) == null || d.get('mentalLevel', null) is number) &&
-             (d.get('physicalScore', null) == null || d.get('physicalScore', null) is number) &&
-             (d.get('productivityScore', null) == null || d.get('productivityScore', null) is number) &&
-             (d.get('currentPlan', null) == null || (d.get('currentPlan', null) is string && d.get('currentPlan', null).size() < 50)) &&
-             (d.get('planExpiryDate', null) == null || (d.get('planExpiryDate', null) is string && d.get('planExpiryDate', null).size() < 50)) &&
-             (d.get('financialBalance', null) == null || d.get('financialBalance', null) is number) &&
-             (d.get('lastCheckIn', null) == null || (d.get('lastCheckIn', null) is string && d.get('lastCheckIn', null).size() < 50)) &&
-             (d.get('routine', null) == null || (d.get('routine', null) is string && d.get('routine', null).size() < 2000)) &&
-             (d.get('habits', null) == null || (d.get('habits', null) is string && d.get('habits', null).size() < 2000)) &&
-             (d.get('physicalLevel', null) == null || (d.get('physicalLevel', null) is string && d.get('physicalLevel', null).size() < 1000)) &&
-             (d.get('goals', null) == null || (d.get('goals', null) is string && d.get('goals', null).size() < 2000)) &&
-             (d.get('timeAvailable', null) == null || (d.get('timeAvailable', null) is string && d.get('timeAvailable', null).size() < 1000)) &&
-             (d.get('userProfileType', null) == null || d.get('userProfileType', null) in ['disciplined', 'undisciplined', 'anxious', 'balanced', 'beginner', 'advanced', 'focused', 'dispersed']) &&
-             (d.get('notifications', null) == null || d.get('notifications', null) is map) &&
-             (d.get('interfaceSettings', null) == null || d.get('interfaceSettings', null) is map) &&
-             (d.get('privacySettings', null) == null || d.get('privacySettings', null) is map) &&
-             (d.get('role', 'user') == 'user' || isAdmin()) &&
-             (d.get('lastEmotionalCheckIn', null) == null || (
-               d.get('lastEmotionalCheckIn', null) is map && 
-               d.get('lastEmotionalCheckIn', null).get('state', null) is string && 
-               d.get('lastEmotionalCheckIn', null).get('intensity', null) is number && 
-               d.get('lastEmotionalCheckIn', null).get('timestamp', null) is string
-             )) &&
-             (d.get('evolutionaryProfile', null) == null || (
-               d.get('evolutionaryProfile', null) is map &&
-               d.get('evolutionaryProfile', null).get('classification', null) is string &&
-               d.get('evolutionaryProfile', null).get('consistency', null) is number &&
-               d.get('evolutionaryProfile', null).get('focus', null) is number &&
-               d.get('evolutionaryProfile', null).get('impulsivity', null) is number &&
-               d.get('evolutionaryProfile', null).get('lastUpdate', null) is string
-             )) &&
-             (d.get('pressureMode', null) == null || (
-               d.get('pressureMode', null) is map &&
-               d.get('pressureMode', null).get('intensity', null) in ['low', 'medium', 'high', 'hardcore'] &&
-               d.get('pressureMode', null).get('active', null) is bool
-             )) &&
-             (d.get('deepAnalysisHistory', null) == null || d.get('deepAnalysisHistory', null) is list);
+      return data.keys().hasAll(['uid', 'onboardingComplete']) &&
+             data.uid == request.auth.uid &&
+             data.onboardingComplete is bool &&
+             (data.get('email', '') == '' || isValidEmail(data.email)) &&
+             data.get('displayName', '').size() < 100;
     }
 
     function isValidDailyPlan(data) {
-      let d = data;
-      return d.get('uid', null) == request.auth.uid &&
-             d.get('date', '') is string && d.get('date', '').size() < 50 &&
-             d.get('tasks', []) is list && d.get('tasks', []).size() < 50 &&
-             d.get('aiFeedback', '') is string && d.get('aiFeedback', '').size() < 5000 &&
-             d.get('completedCount', -1) is number;
+      return data.keys().hasAll(['uid', 'date']) &&
+             data.uid == request.auth.uid &&
+             data.date is string;
     }
 
-    function isValidChat(data) {
-      let d = data;
-      return d.get('uid', null) == request.auth.uid &&
-             d.get('role', '') in ['user', 'model'] &&
-             d.get('content', '') is string && d.get('content', '').size() < 10000 &&
-             d.get('timestamp', '') is string && d.get('timestamp', '').size() < 50;
-    }
-
-    function isValidEvolution(data) {
-      let d = data;
-      return d.get('uid', null) == request.auth.uid &&
-             d.get('date', '') is string && d.get('date', '').size() < 50 &&
-             d.get('mentalScore', -1) is number &&
-             d.get('physicalScore', -1) is number &&
-             d.get('productivityScore', -1) is number;
-    }
-
-    function isValidChallenge(data) {
-      let d = data;
-      return d.get('uid', null) == request.auth.uid &&
-             d.get('title', '') is string && d.get('title', '').size() < 200 &&
-             d.get('description', '') is string && d.get('description', '').size() < 1000 &&
-             d.get('startDate', '') is string && d.get('startDate', '').size() < 50 &&
-             d.get('progress', -1) is number &&
-             d.get('progress', -1) >= 0 && d.get('progress', -1) <= 30 &&
-             (d.get('lastCompletedDate', null) == null || (d.get('lastCompletedDate', '') is string && d.get('lastCompletedDate', '').size() < 50)) &&
-             d.get('tasks', []) is list && d.get('tasks', []).size() <= 30 &&
-             d.get('category', '') is string && d.get('category', '').size() < 50;
-    }
-
-    function isValidGoal(data) {
-      let d = data;
-      return d.get('uid', null) == request.auth.uid &&
-             d.get('title', '') is string && d.get('title', '').size() < 200 &&
-             (d.get('description', null) == null || (d.get('description', '') is string && d.get('description', '').size() < 1000)) &&
-             d.get('targetDate', '') is string && d.get('targetDate', '').size() < 50 &&
-             d.get('category', '') in ['personal', 'professional', 'financial', 'health'] &&
-             d.get('status', '') in ['active', 'completed', 'archived'] &&
-             d.get('progress', -1) is number &&
-             d.get('steps', []) is list && d.get('steps', []).size() < 100;
-    }
-
-    function isValidFinancialLog(data) {
-      let d = data;
-      return d.get('uid', null) == request.auth.uid &&
-             d.get('type', '') in ['income', 'expense'] &&
-             d.get('amount', -1) is number &&
-             d.get('date', '') is string && d.get('date', '').size() < 50 &&
-             (d.get('category', null) == null || (d.get('category', '') is string && d.get('category', '').size() < 100)) &&
-             (d.get('description', null) == null || (d.get('description', '') is string && d.get('description', '').size() < 500)) &&
-             (d.get('paymentMethod', null) == null || (d.get('paymentMethod', '') is string && d.get('paymentMethod', '').size() < 100));
-    }
-
-    function isValidEmotionalLog(data) {
-      let d = data;
-      return d.get('uid', null) == request.auth.uid &&
-             d.get('state', '') is string && d.get('state', '').size() < 100 &&
-             d.get('intensity', -1) is number &&
-             (d.get('notes', null) == null || (d.get('notes', '') is string && d.get('notes', '').size() < 1000)) &&
-             d.get('timestamp', '') is string && d.get('timestamp', '').size() < 50;
-    }
-
-    function isValidMission(data) {
-      let d = data;
-      return d.get('uid', null) == request.auth.uid &&
-             d.get('title', '') is string && d.get('title', '').size() < 200 &&
-             d.get('description', '') is string && d.get('description', '').size() < 1000 &&
-             d.get('objective', '') is string && d.get('objective', '').size() < 1000 &&
-             d.get('benefit', '') is string && d.get('benefit', '').size() < 1000 &&
-             d.get('xp', -1) is number &&
-             d.get('completed', false) is bool &&
-             d.get('category', '') in ['daily', 'weekly', 'monthly'] &&
-             d.get('deadline', '') is string && d.get('deadline', '').size() < 50;
-    }
-
-    function isValidFutureSimulation(data) {
-      let d = data;
-      return d.get('uid', null) == request.auth.uid &&
-             d.get('date', '') is string && d.get('date', '').size() < 50 &&
-             d.get('positiveScenario', '') is string && d.get('positiveScenario', '').size() < 5000 &&
-             d.get('negativeScenario', '') is string && d.get('negativeScenario', '').size() < 5000 &&
-             d.get('actionsAnalyzed', []) is list;
-    }
-
-    function isValidDeepAnalysis(data) {
-      let d = data;
-      return d.get('uid', null) == request.auth.uid &&
-             d.get('problem', '') is string && d.get('problem', '').size() < 2000 &&
-             d.get('status', '') in ['active', 'completed'] &&
-             d.get('messages', []) is list &&
-             d.get('createdAt', '') is string && d.get('createdAt', '').size() < 50;
-    }
-
-    function isValidFocusSession(data) {
-      let d = data;
-      return d.get('uid', null) == request.auth.uid &&
-             d.get('startTime', '') is string && d.get('startTime', '').size() < 50 &&
-             d.get('duration', -1) is number &&
-             d.get('task', '') is string && d.get('task', '').size() < 500 &&
-             d.get('completed', false) is bool;
-    }
-
-    function isValidPsychologistSession(data) {
-      let d = data;
-      return d.get('uid', null) == request.auth.uid &&
-             d.get('status', '') in ['active', 'completed'] &&
-             d.get('messages', []) is list && d.get('messages', []).size() < 1000 &&
-             d.get('createdAt', '') is string && d.get('createdAt', '').size() < 50;
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['uid', 'role', 'content', 'timestamp']) &&
+             data.uid == request.auth.uid &&
+             data.role in ['user', 'model'] &&
+             data.content is string &&
+             data.content.size() < 5000 &&
+             isValidDateString(data.timestamp);
     }
 
     // ===============================================================
-    // Collection Rules
+    // Match Rules
     // ===============================================================
 
-    // User Profile
+    // Users Collection
     match /users/{userId} {
-      allow read: if isOwner(userId);
+      allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && isValidUser(request.resource.data);
       allow update: if isOwner(userId) && isValidUser(request.resource.data);
-      allow delete: if isOwner(userId);
+      allow delete: if isAdmin();
     }
 
-    // Daily Plans
+    // dailyPlans Collection
     match /dailyPlans/{planId} {
-      allow read: if isDocOwner();
-      allow create: if isRequestOwner() && isValidDailyPlan(request.resource.data);
-      allow update: if isDocOwner() && isValidDailyPlan(request.resource.data);
+      allow read: if isAuthenticated() && (resource == null || resource.data.uid == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && isValidDailyPlan(request.resource.data);
+      allow update: if isAuthenticated() && isDocOwner() && isValidDailyPlan(request.resource.data);
+      allow delete: if isAuthenticated() && isDocOwner() || isAdmin();
     }
 
-    // Chats
+    // chats Collection
     match /chats/{chatId} {
-      allow read: if isDocOwner();
-      allow create: if isRequestOwner() && isValidChat(request.resource.data);
+      allow read: if isAuthenticated() && (resource == null || resource.data.uid == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && isValidChatMessage(request.resource.data);
+      allow update: if isAuthenticated() && isDocOwner() && isValidChatMessage(request.resource.data);
+      allow delete: if isAuthenticated() && isDocOwner() || isAdmin();
     }
 
-    // Evolution Logs
+    // evolution Collection
     match /evolution/{logId} {
-      allow read: if isDocOwner();
-      allow create: if isRequestOwner() && isValidEvolution(request.resource.data);
+      allow read: if isAuthenticated() && (resource == null || resource.data.uid == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuthenticated() && isDocOwner();
+      allow delete: if isAuthenticated() && isDocOwner() || isAdmin();
     }
 
-    // Active Challenges
+    // activeChallenges Collection
     match /activeChallenges/{uid} {
-      allow read: if isOwner(uid);
-      allow create: if isOwner(uid) && isValidChallenge(request.resource.data);
-      allow update: if isOwner(uid) && isValidChallenge(request.resource.data);
-      allow delete: if isOwner(uid);
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid);
+      allow delete: if isOwner(uid) || isAdmin();
     }
 
-    // Goals
+    // goals Collection
     match /goals/{goalId} {
-      allow read: if isDocOwner();
-      allow create: if isRequestOwner() && isValidGoal(request.resource.data);
-      allow update: if isDocOwner() && isValidGoal(request.resource.data);
-      allow delete: if isDocOwner();
+      allow read: if isAuthenticated() && (resource == null || resource.data.uid == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuthenticated() && isDocOwner();
+      allow delete: if isAuthenticated() && isDocOwner() || isAdmin();
     }
 
-    // Financial Logs
+    // financialLogs Collection
     match /financialLogs/{logId} {
-      allow read: if isDocOwner();
-      allow create: if isRequestOwner() && isValidFinancialLog(request.resource.data);
-      allow update: if isDocOwner() && isValidFinancialLog(request.resource.data);
-      allow delete: if isDocOwner();
+      allow read: if isAuthenticated() && (resource == null || resource.data.uid == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuthenticated() && isDocOwner();
+      allow delete: if isAuthenticated() && isDocOwner() || isAdmin();
     }
 
-    // Emotional Logs
+    // emotionalLogs Collection
     match /emotionalLogs/{logId} {
-      allow read: if isDocOwner();
-      allow create: if isRequestOwner() && isValidEmotionalLog(request.resource.data);
+      allow read: if isAuthenticated() && (resource == null || resource.data.uid == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuthenticated() && isDocOwner();
+      allow delete: if isAuthenticated() && isDocOwner() || isAdmin();
     }
 
-    // Missions
-    match /missions/{missionId} {
-      allow read: if isDocOwner();
-      allow create: if isRequestOwner() && isValidMission(request.resource.data);
-      allow update: if isDocOwner() && isValidMission(request.resource.data);
-      allow delete: if isDocOwner();
-    }
-
-    // Future Simulations
-    match /future_simulations/{simId} {
-      allow read: if isDocOwner();
-      allow create: if isRequestOwner() && isValidFutureSimulation(request.resource.data);
-    }
-
-    // Deep Analysis Sessions
-    match /deep_analysis_sessions/{sessionId} {
-      allow read: if isDocOwner();
-      allow create: if isRequestOwner() && isValidDeepAnalysis(request.resource.data);
-      allow update: if isDocOwner() && isValidDeepAnalysis(request.resource.data);
-    }
-
-    // Focus Sessions
-    match /focus_sessions/{sessionId} {
-      allow read: if isDocOwner();
-      allow create: if isRequestOwner() && isValidFocusSession(request.resource.data);
-      allow update: if isDocOwner() && isValidFocusSession(request.resource.data);
-    }
-
-    // Psychologist Sessions
-    match /psychologistSessions/{sessionId} {
-      allow read: if isDocOwner();
-      allow create: if isRequestOwner() && isValidPsychologistSession(request.resource.data);
-      allow update: if isDocOwner() && isValidPsychologistSession(request.resource.data);
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

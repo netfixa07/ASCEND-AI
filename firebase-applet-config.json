@@ -1,10 +1,10 @@
 {
-  "projectId": "gen-lang-client-0189336729",
-  "appId": "1:26588274688:web:2fcc0e32d32d1cbe72f8e5",
-  "apiKey": "AIzaSyDbmsFqifeznhaZZPhDP-qc0OIaywUPJbo",
-  "authDomain": "gen-lang-client-0189336729.firebaseapp.com",
+  "projectId": "ascend-ai-3b2b7",
+  "appId": "1:156583013274:web:710d6f38d62f2327726823",
+  "apiKey": "AIzaSyAiNrWaXZGKPDs6cxYzVvqfYrIudoEr6co",
+  "authDomain": "ascend-ai-3b2b7.firebaseapp.com",
   "firestoreDatabaseId": "ai-studio-a8550303-d75a-4177-b6a1-6c4c8fa8860d",
-  "storageBucket": "gen-lang-client-0189336729.firebasestorage.app",
-  "messagingSenderId": "26588274688",
+  "storageBucket": "ascend-ai-3b2b7.firebasestorage.app",
+  "messagingSenderId": "156583013274",
   "measurementId": ""
 }

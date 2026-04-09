@@ -125,7 +125,8 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
       
       onComplete(isLogin);
     } catch (error: any) {
-      console.error("Auth error:", error);
+      // Enhanced error handling using the central handleAuthError utility
+      console.error("Auth error caught in component:", error);
       const message = handleAuthError(error);
       toast.error(message);
     } finally {
@@ -164,7 +165,8 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
       toast.success("Login com Google realizado!");
       onComplete(true);
     } catch (error: any) {
-      console.error("Google Auth error:", error);
+      // Enhanced error handling using the central handleAuthError utility
+      console.error("Google Auth error caught in component:", error);
       const message = handleAuthError(error);
       toast.error(message);
     } finally {

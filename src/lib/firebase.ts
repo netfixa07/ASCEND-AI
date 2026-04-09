@@ -92,7 +92,15 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 }
 
 export function handleAuthError(error: any): string {
-  const code = error.code;
+  // Log the full error for debugging in the console
+  console.error("Firebase Auth Error Details:", {
+    code: error.code,
+    message: error.message,
+    fullError: error
+  });
+
+  const code = error.code || (error.message && error.message.includes('auth/') ? error.message.match(/auth\/[a-z-]+/)?.[0] : null);
+  
   switch (code) {
     case 'auth/user-not-found':
     case 'auth/wrong-password':
@@ -108,12 +116,18 @@ export function handleAuthError(error: any): string {
       return "Muitas tentativas falhas. Tente novamente mais tarde ou recupere sua senha.";
     case 'auth/unauthorized-domain':
       const domain = typeof window !== 'undefined' ? window.location.hostname : 'este domínio';
-      return `Este domínio (${domain}) não está autorizado para login com Google. Adicione-o no Console do Firebase (Autenticação > Configurações > Domínios autorizados).`;
+      return `Este domínio (${domain}) não está autorizado para login com Google. No Console do Firebase, adicione EXATAMENTE "${domain}" em Autenticação > Configurações > Domínios autorizados.`;
     case 'auth/popup-closed-by-user':
-      return "Login cancelado.";
+      return "Login cancelado pelo usuário.";
     case 'auth/network-request-failed':
-      return "Erro de conexão. Verifique sua internet.";
+      return "Erro de rede. Verifique sua conexão com a internet.";
+    case 'auth/operation-not-allowed':
+      return "Este método de login não está ativado no Console do Firebase.";
     default:
-      return error.message || "Erro na autenticação. Tente novamente.";
+      // If we have a specific message from Firebase but no code, try to make it readable
+      if (error.message && error.message.includes('auth/')) {
+        return `Erro de autenticação: ${error.message.split('(')[1]?.split(')')[0] || error.message}`;
+      }
+      return "Ocorreu um erro na autenticação. Por favor, tente novamente.";
   }
 }

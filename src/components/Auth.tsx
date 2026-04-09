@@ -56,6 +56,18 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Basic validation for both login and signup
+    if (!formData.email || !formData.email.includes('@')) {
+      toast.error("Por favor, insira um e-mail válido.");
+      return;
+    }
+    
+    if (!formData.password || formData.password.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -63,16 +75,16 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
         await loginWithEmail(formData.email, formData.password);
         toast.success("Bem-vindo de volta!");
       } else {
-        // Validation
-        const cleanCPF = formData.cpf.replace(/\D/g, '');
-        if (cleanCPF.length !== 11) {
-          toast.error("CPF inválido. Digite os 11 números.");
+        // Signup specific validation
+        if (!formData.fullName || formData.fullName.trim().length < 3) {
+          toast.error("Por favor, insira seu nome completo.");
           setLoading(false);
           return;
         }
 
-        if (formData.password.length < 6) {
-          toast.error("A senha deve ter pelo menos 6 caracteres.");
+        const cleanCPF = formData.cpf.replace(/\D/g, '');
+        if (cleanCPF.length !== 11) {
+          toast.error("CPF inválido. Digite os 11 números.");
           setLoading(false);
           return;
         }

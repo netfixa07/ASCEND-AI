@@ -1,4 +1,4 @@
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `
 Você é o Arquiteto Chefe da ASCEND AI, a plataforma de evolução humana mais avançada do mundo. Seu objetivo não é apenas ajudar o usuário, mas transformá-lo em uma versão de alta performance (nível elite global).
@@ -44,13 +44,14 @@ function getGenAI() {
 }
 
 const cleanJSON = (text: string) => {
+  if (!text) return "{}";
   return text.replace(/```json\n?|```/g, "").trim();
 };
 
 export const getMentorResponse = async (prompt: string, history: any[] = [], userData?: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     
     const approachInstructions = userData?.aiApproach ? `
     ABORDAGEM DO MENTOR: Você deve agir com a abordagem "${userData.aiApproach}".
@@ -78,8 +79,7 @@ export const getMentorResponse = async (prompt: string, history: any[] = [], use
       ],
       config: {
         systemInstruction: SYSTEM_INSTRUCTION + approachInstructions + pressureInstructions + profileInstructions,
-        temperature: 0.7,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        temperature: 0.7
       },
     });
     return response.text || "Desculpe, não consegui gerar uma resposta agora.";
@@ -92,7 +92,7 @@ export const getMentorResponse = async (prompt: string, history: any[] = [], use
 export const generateDailyPlan = async (userData: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     const prompt = `Com base nos dados do usuário: ${JSON.stringify(userData)}, gere um plano diário prático em formato JSON com a seguinte estrutura:
     {
       "tasks": [
@@ -106,12 +106,11 @@ export const generateDailyPlan = async (userData: any) => {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+        responseMimeType: "application/json"
       },
     });
     
-    const text = response.text || "{}";
+    const text = cleanJSON(response.text || "{}");
     return JSON.parse(text);
   } catch (e) {
     console.error("Error generating daily plan:", e);
@@ -129,7 +128,7 @@ export const generateDailyPlan = async (userData: any) => {
 export const generate30DayChallenge = async (userData: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     const prompt = `Com base nos dados do usuário: ${JSON.stringify(userData)}, gere um desafio de 30 dias personalizado. O usuário quer melhorar em: ${userData.goals}.
     
     DIRETRIZES DE CLAREZA:
@@ -152,12 +151,11 @@ export const generate30DayChallenge = async (userData: any) => {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+        responseMimeType: "application/json"
       },
     });
     
-    const text = response.text || "{}";
+    const text = cleanJSON(response.text || "{}");
     return JSON.parse(text);
   } catch (e) {
     console.error("Error generating 30 day challenge:", e);
@@ -184,7 +182,7 @@ DIRETRIZES:
 export const analyzeRootCause = async (userData: any, problem: string, history: any[] = []) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     
     const historyContext = userData?.deepAnalysisHistory ? `
     HISTÓRICO DE ANÁLISES ANTERIORES:
@@ -215,7 +213,18 @@ export const analyzeRootCause = async (userData: any, problem: string, history: 
       config: {
         systemInstruction: DEEP_ANALYSIS_SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
-        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            analysis: { type: Type.STRING },
+            rootCause: { type: Type.STRING },
+            patterns: { type: Type.ARRAY, items: { type: Type.STRING } },
+            selfSabotage: { type: Type.BOOLEAN },
+            immediateAction: { type: Type.STRING },
+            nextQuestion: { type: Type.STRING }
+          },
+          required: ["analysis", "rootCause", "patterns", "selfSabotage", "immediateAction", "nextQuestion"]
+        }
       },
     });
     
@@ -237,7 +246,7 @@ export const analyzeRootCause = async (userData: any, problem: string, history: 
 export const simulateFuture = async (userData: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     const prompt = `Com base nos dados atuais do usuário: ${JSON.stringify(userData)}, projete o futuro dele em 1 ano, 5 anos e 10 anos.
     Gere dois cenários:
     1. CENÁRIO NEGATIVO: Se ele continuar com os hábitos atuais ruins e inconsistências.
@@ -254,12 +263,12 @@ export const simulateFuture = async (userData: any) => {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+        responseMimeType: "application/json"
       },
     });
     
-    const data = JSON.parse(response.text || "{}");
+    const text = cleanJSON(response.text || "{}");
+    const data = JSON.parse(text);
     return {
       negative: data.negative || { "1year": "", "5years": "", "10years": "" },
       positive: data.positive || { "1year": "", "5years": "", "10years": "" },
@@ -278,7 +287,7 @@ export const simulateFuture = async (userData: any) => {
 export const generateMissions = async (userData: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     const prompt = `Gere 3 missões estratégicas para o usuário com base no seu perfil: ${JSON.stringify(userData)}.
     
     DIRETRIZES DE MISSÃO ELITE:
@@ -307,12 +316,12 @@ export const generateMissions = async (userData: any) => {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+        responseMimeType: "application/json"
       },
     });
     
-    const data = JSON.parse(response.text || "{}");
+    const text = cleanJSON(response.text || "{}");
+    const data = JSON.parse(text);
     return data.missions || [];
   } catch (e) {
     console.error("Error generating missions:", e);
@@ -332,7 +341,7 @@ export const generateMissions = async (userData: any) => {
 export const updateEvolutionaryProfile = async (userData: any, actions: any[]) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     const prompt = `Analise o histórico recente de ações do usuário: ${JSON.stringify(actions)}.
     Com base nos dados do perfil: ${JSON.stringify(userData)}, atualize a classificação evolutiva dele.
     Retorne um JSON:
@@ -349,12 +358,11 @@ export const updateEvolutionaryProfile = async (userData: any, actions: any[]) =
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+        responseMimeType: "application/json"
       },
     });
     
-    const text = response.text || "{}";
+    const text = cleanJSON(response.text || "{}");
     return JSON.parse(text);
   } catch (e) {
     console.error("Error updating evolutionary profile:", e);
@@ -393,7 +401,7 @@ FRASE GUIA: "Você não está sozinho. Aqui, você é compreendido."
 export const getPsychologistResponse = async (prompt: string, history: any[] = [], userData?: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     
     const context = `
     CONTEXTO DO USUÁRIO:
@@ -412,8 +420,7 @@ export const getPsychologistResponse = async (prompt: string, history: any[] = [
       ],
       config: {
         systemInstruction: PSYCHOLOGIST_SYSTEM_INSTRUCTION + context,
-        temperature: 0.8,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        temperature: 0.8
       },
     });
     return response.text || "Sinto muito, não consegui processar seus sentimentos agora. Mas estou aqui.";

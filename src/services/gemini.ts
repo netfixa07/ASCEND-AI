@@ -35,9 +35,9 @@ let genAI: GoogleGenAI | null = null;
 function getGenAI() {
   if (!genAI) {
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.error("GEMINI_API_KEY is missing. Check your environment variables.");
-      throw new Error("GEMINI_API_KEY is not defined.");
+    if (!apiKey || apiKey.trim() === "" || apiKey.includes("TODO") || apiKey.includes("YOUR_API_KEY")) {
+      console.error("GEMINI_API_KEY is missing or is a placeholder. AI features will fail.");
+      throw new Error("Chave de API do Gemini não configurada ou inválida. Por favor, configure a GEMINI_API_KEY no menu Settings.");
     }
     genAI = new GoogleGenAI({ apiKey });
   }
@@ -46,15 +46,42 @@ function getGenAI() {
 
 const cleanJSON = (text: string) => {
   if (!text) return "{}";
-  // Remove markdown code blocks if present
-  const cleaned = text.replace(/```json\n?|```/g, "").trim();
-  return cleaned;
+  try {
+    // Try to find JSON block
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return jsonMatch[0];
+    }
+    return text.replace(/```json\n?|```/g, "").trim();
+  } catch (e) {
+    return text;
+  }
+};
+
+const safeParseJSON = (text: string, fallback: any) => {
+  const cleaned = cleanJSON(text);
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error("Failed to parse JSON:", cleaned, e);
+    // Try one more time by removing anything before the first { and after the last }
+    try {
+      const firstBrace = cleaned.indexOf('{');
+      const lastBrace = cleaned.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        return JSON.parse(cleaned.substring(firstBrace, lastBrace + 1));
+      }
+    } catch (e2) {
+      console.error("Second attempt to parse JSON failed:", e2);
+    }
+    return fallback;
+  }
 };
 
 export const getMentorResponse = async (prompt: string, history: any[] = [], userData?: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     
     const approachInstructions = userData?.aiApproach ? `
     ABORDAGEM DO MENTOR: Você deve agir com a abordagem "${userData.aiApproach}".
@@ -88,21 +115,23 @@ export const getMentorResponse = async (prompt: string, history: any[] = [], use
     return response.text || "Desculpe, não consegui gerar uma resposta agora.";
   } catch (error: any) {
     console.error("Error in getMentorResponse:", error);
-    return `Desculpe, tive um problema ao processar sua solicitação (${error.message || 'Erro desconhecido'}). Tente novamente em alguns instantes.`;
+    const errorMsg = error.message || "Erro desconhecido";
+    return `Desculpe, tive um problema ao processar sua solicitação (${errorMsg}). Tente novamente em alguns instantes.`;
   }
 };
 
 export const generateDailyPlan = async (userData: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     const prompt = `Com base nos dados do usuário: ${JSON.stringify(userData)}, gere um plano diário prático em formato JSON com a seguinte estrutura:
     {
       "tasks": [
         { "time": "06:00", "description": "Acordar e meditar", "category": "mental" }
       ],
       "aiFeedback": "Feedback curto e direto"
-    }`;
+    }
+    RESPOSTA OBRIGATÓRIA: Retorne APENAS o JSON puro, sem explicações adicionais.`;
 
     const response = await ai.models.generateContent({
       model,
@@ -132,8 +161,7 @@ export const generateDailyPlan = async (userData: any) => {
       },
     });
     
-    const text = cleanJSON(response.text || "{}");
-    return JSON.parse(text);
+    return safeParseJSON(response.text || "{}", { tasks: [], aiFeedback: "Erro ao processar plano." });
   } catch (e: any) {
     console.error("Error generating daily plan:", e);
     return { 
@@ -142,7 +170,7 @@ export const generateDailyPlan = async (userData: any) => {
         { "time": "12:00", "description": "Pausa estratégica e hidratação", "category": "rest" },
         { "time": "18:00", "description": "Revisão do dia e planejamento de amanhã", "category": "mental" }
       ], 
-      aiFeedback: `Tivemos um problema técnico (${e.message || 'Erro desconhecido'}) ao gerar seu plano personalizado, mas aqui está uma estrutura base para você não perder o ritmo.` 
+      aiFeedback: `Tivemos um problema técnico (${e.message || 'Erro desconhecido'}) ao gerar seu plano personalizado.` 
     };
   }
 };
@@ -150,7 +178,7 @@ export const generateDailyPlan = async (userData: any) => {
 export const generate30DayChallenge = async (userData: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     const prompt = `Com base nos dados do usuário: ${JSON.stringify(userData)}, gere um desafio de 30 dias personalizado. O usuário quer melhorar em: ${userData.goals}.
     
     DIRETRIZES DE CLAREZA:
@@ -166,7 +194,8 @@ export const generate30DayChallenge = async (userData: any) => {
       "tasks": ["Tarefa Dia 1: [Ação Clara]", "Tarefa Dia 2: [Ação Clara]", ..., "Tarefa Dia 30: [Ação Clara]"],
       "category": "mental | physical | productivity"
     }
-    IMPORTANTE: Gere EXATAMENTE 30 tarefas diferentes, uma para cada dia.`;
+    IMPORTANTE: Gere EXATAMENTE 30 tarefas diferentes, uma para cada dia.
+    RESPOSTA OBRIGATÓRIA: Retorne APENAS o JSON puro, sem explicações adicionais.`;
 
     const response = await ai.models.generateContent({
       model,
@@ -187,13 +216,12 @@ export const generate30DayChallenge = async (userData: any) => {
       },
     });
     
-    const text = cleanJSON(response.text || "{}");
-    return JSON.parse(text);
+    return safeParseJSON(response.text || "{}", { title: "Desafio", description: "", tasks: [], category: "mental" });
   } catch (e: any) {
     console.error("Error generating 30 day challenge:", e);
     return {
       title: "Desafio de Resiliência Ascendente",
-      description: `Um desafio base focado em construir disciplina inabalável enquanto resolvemos problemas técnicos (${e.message || 'Erro desconhecido'}).`,
+      description: `Um desafio base focado em construir disciplina inabalável (${e.message || 'Erro desconhecido'}).`,
       tasks: Array(30).fill("Realizar 15 minutos de foco total na sua prioridade #1 do dia."),
       category: "mental"
     };
@@ -214,7 +242,7 @@ DIRETRIZES:
 export const analyzeRootCause = async (userData: any, problem: string, history: any[] = []) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     
     const historyContext = userData?.deepAnalysisHistory ? `
     HISTÓRICO DE ANÁLISES ANTERIORES:
@@ -226,7 +254,7 @@ export const analyzeRootCause = async (userData: any, problem: string, history: 
     
     Como especialista em análise comportamental, conduza uma análise profunda para encontrar a RAIZ DO PROBLEMA.
     Identifique padrões de autossabotagem e sugira uma ação prática imediata.
-    Retorne um JSON com a seguinte estrutura:
+    Retorne um JSON with a seguinte estrutura:
     {
       "analysis": "Sua análise profunda e direta",
       "rootCause": "A causa raiz identificada",
@@ -234,7 +262,8 @@ export const analyzeRootCause = async (userData: any, problem: string, history: 
       "selfSabotage": true,
       "immediateAction": "Ação prática agora",
       "nextQuestion": "Uma pergunta estratégica para aprofundar"
-    }`;
+    }
+    RESPOSTA OBRIGATÓRIA: Retorne APENAS o JSON puro, sem explicações adicionais.`;
 
     const response = await ai.models.generateContent({
       model,
@@ -260,8 +289,14 @@ export const analyzeRootCause = async (userData: any, problem: string, history: 
       },
     });
     
-    const text = cleanJSON(response.text || "{}");
-    return JSON.parse(text);
+    return safeParseJSON(response.text || "{}", { 
+      analysis: "Erro ao processar análise.", 
+      rootCause: "Indefinida", 
+      patterns: [], 
+      selfSabotage: false, 
+      immediateAction: "Tente novamente.", 
+      nextQuestion: "" 
+    });
   } catch (e: any) {
     console.error("Error in analyzeRootCause:", e);
     return { 
@@ -278,7 +313,7 @@ export const analyzeRootCause = async (userData: any, problem: string, history: 
 export const simulateFuture = async (userData: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     const prompt = `Com base nos dados atuais do usuário: ${JSON.stringify(userData)}, projete o futuro dele em 1 ano, 5 anos e 10 anos.
     Gere dois cenários:
     1. CENÁRIO NEGATIVO: Se ele continuar com os hábitos atuais ruins e inconsistências.
@@ -288,7 +323,8 @@ export const simulateFuture = async (userData: any) => {
       "negative": { "1year": "...", "5years": "...", "10years": "..." },
       "positive": { "1year": "...", "5years": "...", "10years": "..." },
       "warning": "Um alerta impactante sobre as escolhas atuais"
-    }`;
+    }
+    RESPOSTA OBRIGATÓRIA: Retorne APENAS o JSON puro, sem explicações adicionais.`;
 
     const response = await ai.models.generateContent({
       model,
@@ -324,8 +360,7 @@ export const simulateFuture = async (userData: any) => {
       },
     });
     
-    const text = cleanJSON(response.text || "{}");
-    const data = JSON.parse(text);
+    const data = safeParseJSON(response.text || "{}", { negative: {}, positive: {}, warning: "" });
     return {
       negative: data.negative || { "1year": "", "5years": "", "10years": "" },
       positive: data.positive || { "1year": "", "5years": "", "10years": "" },
@@ -336,7 +371,7 @@ export const simulateFuture = async (userData: any) => {
     return { 
       negative: { "1year": "Estagnação e perda de potencial.", "5years": "Acúmulo de arrependimentos.", "10years": "Vida abaixo do que você é capaz." }, 
       positive: { "1year": "Resultados visíveis e nova mentalidade.", "5years": "Liberdade e maestria pessoal.", "10years": "Legado e plenitude absoluta." }, 
-      warning: `O sistema de simulação falhou (${e.message || 'Erro desconhecido'}), mas seu futuro é real. Escolha a disciplina.` 
+      warning: `O sistema de simulação falhou (${e.message || 'Erro desconhecido'}).` 
     };
   }
 };
@@ -344,7 +379,7 @@ export const simulateFuture = async (userData: any) => {
 export const generateMissions = async (userData: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     const prompt = `Gere 3 missões estratégicas para o usuário com base no seu perfil: ${JSON.stringify(userData)}.
     
     DIRETRIZES DE MISSÃO ELITE:
@@ -366,7 +401,8 @@ export const generateMissions = async (userData: any) => {
           "category": "daily" 
         }
       ]
-    }`;
+    }
+    RESPOSTA OBRIGATÓRIA: Retorne APENAS o JSON puro, sem explicações adicionais.`;
 
     const response = await ai.models.generateContent({
       model,
@@ -398,8 +434,7 @@ export const generateMissions = async (userData: any) => {
       },
     });
     
-    const text = cleanJSON(response.text || "{}");
-    const data = JSON.parse(text);
+    const data = safeParseJSON(response.text || "{}", { missions: [] });
     return data.missions || [];
   } catch (e: any) {
     console.error("Error generating missions:", e);
@@ -419,7 +454,7 @@ export const generateMissions = async (userData: any) => {
 export const updateEvolutionaryProfile = async (userData: any, actions: any[]) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     const prompt = `Analise o histórico recente de ações do usuário: ${JSON.stringify(actions)}.
     Com base nos dados do perfil: ${JSON.stringify(userData)}, atualize a classificação evolutiva dele.
     Retorne um JSON:
@@ -429,7 +464,8 @@ export const updateEvolutionaryProfile = async (userData: any, actions: any[]) =
       "focus": 70,
       "impulsivity": 20,
       "feedback": "Feedback curto sobre a mudança de perfil"
-    }`;
+    }
+    RESPOSTA OBRIGATÓRIA: Retorne APENAS o JSON puro, sem explicações adicionais.`;
 
     const response = await ai.models.generateContent({
       model,
@@ -451,8 +487,7 @@ export const updateEvolutionaryProfile = async (userData: any, actions: any[]) =
       },
     });
     
-    const text = cleanJSON(response.text || "{}");
-    return JSON.parse(text);
+    return safeParseJSON(response.text || "{}", { classification: "Em Evolução", consistency: 50, focus: 50, impulsivity: 50, feedback: "" });
   } catch (e: any) {
     console.error("Error updating evolutionary profile:", e);
     return {
@@ -460,7 +495,7 @@ export const updateEvolutionaryProfile = async (userData: any, actions: any[]) =
       consistency: userData?.evolutionaryProfile?.consistency || 50,
       focus: userData?.evolutionaryProfile?.focus || 50,
       impulsivity: userData?.evolutionaryProfile?.impulsivity || 50,
-      feedback: `O sistema de análise evolutiva está temporariamente offline (${e.message || 'Erro desconhecido'}), mas sua jornada continua.`
+      feedback: `O sistema de análise evolutiva está temporariamente offline (${e.message || 'Erro desconhecido'}).`
     };
   }
 };
@@ -490,7 +525,7 @@ FRASE GUIA: "Você não está sozinho. Aqui, você é compreendido."
 export const getPsychologistResponse = async (prompt: string, history: any[] = [], userData?: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-3-flash-preview";
+    const model = "gemini-flash-latest";
     
     const context = `
     CONTEXTO DO USUÁRIO:
@@ -515,6 +550,7 @@ export const getPsychologistResponse = async (prompt: string, history: any[] = [
     return response.text || "Sinto muito, não consegui processar seus sentimentos agora. Mas estou aqui.";
   } catch (error: any) {
     console.error("Error in getPsychologistResponse:", error);
-    return `Sinto muito, tive um pequeno problema técnico (${error.message || 'Erro desconhecido'}). Mas estou aqui com você. Pode repetir o que disse?`;
+    const errorMsg = error.message || "Erro desconhecido";
+    return `Sinto muito, tive um pequeno problema técnico (${errorMsg}). Mas estou aqui com você. Pode repetir o que disse?`;
   }
 };

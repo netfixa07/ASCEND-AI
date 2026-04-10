@@ -35,10 +35,12 @@ let genAI: GoogleGenAI | null = null;
 function getGenAI() {
   if (!genAI) {
     const apiKey = process.env.GEMINI_API_KEY;
+    
     if (!apiKey || apiKey.trim() === "" || apiKey.includes("TODO") || apiKey.includes("YOUR_API_KEY")) {
       console.error("GEMINI_API_KEY is missing or is a placeholder. AI features will fail.");
       throw new Error("Chave de API do Gemini não configurada ou inválida. Por favor, configure a GEMINI_API_KEY no menu Settings.");
     }
+
     genAI = new GoogleGenAI({ apiKey });
   }
   return genAI;
@@ -81,7 +83,7 @@ const safeParseJSON = (text: string, fallback: any) => {
 export const getMentorResponse = async (prompt: string, history: any[] = [], userData?: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-flash-latest";
+    const model = "gemini-3-flash-preview";
     
     const approachInstructions = userData?.aiApproach ? `
     ABORDAGEM DO MENTOR: Você deve agir com a abordagem "${userData.aiApproach}".
@@ -123,7 +125,7 @@ export const getMentorResponse = async (prompt: string, history: any[] = [], use
 export const generateDailyPlan = async (userData: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-flash-latest";
+    const model = "gemini-3-flash-preview";
     const prompt = `Com base nos dados do usuário: ${JSON.stringify(userData)}, gere um plano diário prático em formato JSON com a seguinte estrutura:
     {
       "tasks": [
@@ -178,7 +180,7 @@ export const generateDailyPlan = async (userData: any) => {
 export const generate30DayChallenge = async (userData: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-flash-latest";
+    const model = "gemini-3-flash-preview";
     const prompt = `Com base nos dados do usuário: ${JSON.stringify(userData)}, gere um desafio de 30 dias personalizado. O usuário quer melhorar em: ${userData.goals}.
     
     DIRETRIZES DE CLAREZA:
@@ -242,7 +244,7 @@ DIRETRIZES:
 export const analyzeRootCause = async (userData: any, problem: string, history: any[] = []) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-flash-latest";
+    const model = "gemini-3-flash-preview";
     
     const historyContext = userData?.deepAnalysisHistory ? `
     HISTÓRICO DE ANÁLISES ANTERIORES:
@@ -313,7 +315,7 @@ export const analyzeRootCause = async (userData: any, problem: string, history: 
 export const simulateFuture = async (userData: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-flash-latest";
+    const model = "gemini-3-flash-preview";
     const prompt = `Com base nos dados atuais do usuário: ${JSON.stringify(userData)}, projete o futuro dele em 1 ano, 5 anos e 10 anos.
     Gere dois cenários:
     1. CENÁRIO NEGATIVO: Se ele continuar com os hábitos atuais ruins e inconsistências.
@@ -379,7 +381,7 @@ export const simulateFuture = async (userData: any) => {
 export const generateMissions = async (userData: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-flash-latest";
+    const model = "gemini-3-flash-preview";
     const prompt = `Gere 3 missões estratégicas para o usuário com base no seu perfil: ${JSON.stringify(userData)}.
     
     DIRETRIZES DE MISSÃO ELITE:
@@ -454,7 +456,7 @@ export const generateMissions = async (userData: any) => {
 export const updateEvolutionaryProfile = async (userData: any, actions: any[]) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-flash-latest";
+    const model = "gemini-3-flash-preview";
     const prompt = `Analise o histórico recente de ações do usuário: ${JSON.stringify(actions)}.
     Com base nos dados do perfil: ${JSON.stringify(userData)}, atualize a classificação evolutiva dele.
     Retorne um JSON:
@@ -525,7 +527,7 @@ FRASE GUIA: "Você não está sozinho. Aqui, você é compreendido."
 export const getPsychologistResponse = async (prompt: string, history: any[] = [], userData?: any) => {
   try {
     const ai = getGenAI();
-    const model = "gemini-flash-latest";
+    const model = "gemini-3-flash-preview";
     
     const context = `
     CONTEXTO DO USUÁRIO:

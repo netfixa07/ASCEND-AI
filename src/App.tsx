@@ -29,6 +29,7 @@ import { TooltipProvider } from './components/ui/tooltip';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
 import { Logo } from './components/Logo';
+import { APIKeyWarning } from './components/APIKeyWarning';
 
 export default function App() {
   const { user, profile, loading, updateProfile } = useProfile();
@@ -115,6 +116,7 @@ export default function App() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black text-white">
         <Toaster position="top-right" />
+        <APIKeyWarning />
         <motion.div
           animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 2, repeat: Infinity }}
@@ -131,6 +133,7 @@ export default function App() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-6 text-center">
         <Toaster position="top-right" />
+        <APIKeyWarning />
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -171,6 +174,7 @@ export default function App() {
     return (
       <>
         <Toaster position="top-right" />
+        <APIKeyWarning />
         <Auth onComplete={handleAuthComplete} onBack={() => setHasStarted(false)} />
       </>
     );
@@ -181,6 +185,7 @@ export default function App() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black text-white">
         <Toaster position="top-right" />
+        <APIKeyWarning />
         <motion.div
           animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 2, repeat: Infinity }}
@@ -199,6 +204,7 @@ export default function App() {
     return (
       <>
         <Toaster position="top-right" />
+        <APIKeyWarning />
         <Onboarding 
           user={user} 
           onComplete={handleOnboardingComplete} 
@@ -216,6 +222,7 @@ export default function App() {
     return (
       <>
         <Toaster position="top-right" />
+        <APIKeyWarning />
         <Onboarding 
           user={user} 
           onComplete={handleOnboardingComplete} 
@@ -234,7 +241,10 @@ export default function App() {
 
   if (needsPlan || isViewingPlans || psychologistNeedsPlan) {
     return (
-      <Pricing 
+      <>
+        <Toaster position="top-right" />
+        <APIKeyWarning />
+        <Pricing 
         onSelectPlan={handleSelectPlan} 
         onBack={() => {
           if (isViewingPlans || (psychologistNeedsPlan && profile.currentPlan)) {
@@ -249,6 +259,7 @@ export default function App() {
           }
         }} 
       />
+      </>
     );
   }
 
@@ -256,6 +267,7 @@ export default function App() {
   return (
     <TooltipProvider>
       <Toaster position="top-right" />
+      <APIKeyWarning />
       <div className="min-h-screen bg-zinc-50 dark:bg-black text-zinc-900 dark:text-white flex flex-col lg:flex-row relative">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col lg:flex-row w-full h-full min-h-screen">
           <Sidebar profile={profile} activeTab={activeTab} onTabChange={setActiveTab} onBackToPlans={handleBackToPlans} />

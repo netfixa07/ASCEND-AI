@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Zap, Mail, Lock, User, CreditCard, Phone, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Zap, Mail, Lock, User, CreditCard, Phone, ArrowRight, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { Logo } from './Logo';
@@ -20,6 +20,8 @@ interface AuthProps {
 export default function Auth({ onComplete, onBack }: AuthProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -332,14 +334,21 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
                     <Lock className="absolute left-3 top-3 w-5 h-5 text-zinc-600" />
                     <Input
                       name="password"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
                       autoComplete={isLogin ? "current-password" : "new-password"}
                       value={formData.password}
                       onChange={handleInputChange}
                       required
-                      className="pl-10 bg-zinc-900 border-zinc-800 text-white h-12"
+                      className="pl-10 pr-10 bg-zinc-900 border-zinc-800 text-white h-12"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-3 text-zinc-600 hover:text-zinc-400"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -384,6 +393,27 @@ export default function Auth({ onComplete, onBack }: AuthProps) {
                 >
                   {isLogin ? 'CRIAR NOVA CONTA AGORA' : 'VOLTAR PARA O LOGIN'}
                 </button>
+              </div>
+
+              <div className="mt-8 pt-4 border-t border-zinc-900">
+                <button
+                  type="button"
+                  onClick={() => setShowDebug(!showDebug)}
+                  className="text-[10px] text-zinc-700 hover:text-zinc-500 uppercase tracking-widest font-bold"
+                >
+                  {showDebug ? 'Ocultar Info Técnica' : 'Info Técnica de Conexão'}
+                </button>
+                {showDebug && (
+                  <motion.div 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    className="mt-2 p-3 bg-zinc-900/50 rounded-lg text-[10px] font-mono text-zinc-500 break-all"
+                  >
+                    <p>Projeto: {firebaseConfigFromJson.projectId}</p>
+                    <p>Auth Domain: {firebaseConfigFromJson.authDomain}</p>
+                    <p>Status: Conectado ao Novo Backend</p>
+                  </motion.div>
+                )}
               </div>
             </form>
           </CardContent>

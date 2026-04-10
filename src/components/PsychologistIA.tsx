@@ -95,7 +95,7 @@ export default function PsychologistIA() {
       // Optimistic update
       setSession({ ...session, messages: updatedMessages });
 
-      const history = updatedMessages.map(m => ({
+      const history = session.messages.map(m => ({
         role: m.role,
         parts: [{ text: m.content }]
       }));

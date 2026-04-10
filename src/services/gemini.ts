@@ -43,6 +43,10 @@ function getGenAI() {
   return genAI;
 }
 
+const cleanJSON = (text: string) => {
+  return text.replace(/```json\n?|```/g, "").trim();
+};
+
 export const getMentorResponse = async (prompt: string, history: any[] = [], userData?: any) => {
   try {
     const ai = getGenAI();
@@ -75,10 +79,10 @@ export const getMentorResponse = async (prompt: string, history: any[] = [], use
       config: {
         systemInstruction: SYSTEM_INSTRUCTION + approachInstructions + pressureInstructions + profileInstructions,
         temperature: 0.7,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
       },
     });
-    return response.text;
+    return response.text || "Desculpe, não consegui gerar uma resposta agora.";
   } catch (error) {
     console.error("Error in getMentorResponse:", error);
     return "Desculpe, tive um problema ao processar sua solicitação. Tente novamente em alguns instantes.";
@@ -166,11 +170,30 @@ export const generate30DayChallenge = async (userData: any) => {
   }
 };
 
+const DEEP_ANALYSIS_SYSTEM_INSTRUCTION = `
+Você é o Analista de Elite da ASCEND AI. Sua especialidade é o método dos "5 Porquês" e análise comportamental avançada.
+Sua missão é destruir as desculpas do usuário e encontrar a causa raiz biológica, emocional ou estratégica de qualquer problema.
+
+DIRETRIZES:
+1. NÃO ACEITE SUPERFICIALIDADE: Se o usuário diz "estou sem tempo", você sabe que é "falta de prioridade".
+2. IDENTIFIQUE PADRÕES: Conecte o problema atual com possíveis traumas, medos ou hábitos de autossabotagem.
+3. SEJA BRUTALMENTE HONESTO: A verdade dói, mas a mentira paralisa.
+4. FOCO EM AÇÃO: Toda análise deve terminar com uma ação que o usuário possa fazer nos próximos 5 minutos.
+`;
+
 export const analyzeRootCause = async (userData: any, problem: string, history: any[] = []) => {
   try {
     const ai = getGenAI();
     const model = "gemini-3-flash-preview";
+    
+    const historyContext = userData?.deepAnalysisHistory ? `
+    HISTÓRICO DE ANÁLISES ANTERIORES:
+    ${userData.deepAnalysisHistory.map((h: any) => `- Problema: ${h.problem} | Raiz: ${h.rootCause}`).join('\n')}
+    ` : "";
+
     const prompt = `O usuário está relatando o seguinte problema: "${problem}". 
+    ${historyContext}
+    
     Como especialista em análise comportamental, conduza uma análise profunda para encontrar a RAIZ DO PROBLEMA.
     Identifique padrões de autossabotagem e sugira uma ação prática imediata.
     Retorne um JSON com a seguinte estrutura:
@@ -190,13 +213,13 @@ export const analyzeRootCause = async (userData: any, problem: string, history: 
         { role: "user", parts: [{ text: prompt }] }
       ],
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: DEEP_ANALYSIS_SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
       },
     });
     
-    const text = response.text || "{}";
+    const text = cleanJSON(response.text || "{}");
     return JSON.parse(text);
   } catch (e) {
     console.error("Error in analyzeRootCause:", e);
@@ -356,6 +379,7 @@ DIRETRIZES DE COMPORTAMENTO:
 4. IDENTIFICAÇÃO EMOCIONAL: Fique atenta a sinais de ansiedade, estresse, desmotivação, tristeza ou sobrecarga.
 5. INTERVENÇÕES LEVES: Sugira técnicas de respiração, reflexões guiadas ou mudanças de perspectiva quando apropriado.
 6. MEMÓRIA E EVOLUÇÃO: Lembre-se de padrões emocionais e recorrências mencionadas anteriormente.
+7. PROFUNDIDADE: Suas respostas devem ser profundas e terapêuticas, não apenas superficiais.
 
 LIMITES ÉTICOS (CRÍTICO):
 - Você NÃO substitui um psicólogo real.
@@ -389,10 +413,10 @@ export const getPsychologistResponse = async (prompt: string, history: any[] = [
       config: {
         systemInstruction: PSYCHOLOGIST_SYSTEM_INSTRUCTION + context,
         temperature: 0.8,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
       },
     });
-    return response.text;
+    return response.text || "Sinto muito, não consegui processar seus sentimentos agora. Mas estou aqui.";
   } catch (error) {
     console.error("Error in getPsychologistResponse:", error);
     return "Sinto muito, tive um pequeno problema técnico agora. Mas estou aqui com você. Pode repetir o que disse?";

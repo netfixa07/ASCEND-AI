@@ -73,11 +73,13 @@ export default function MentorChat({ initialMessage, onMessageConsumed }: Mentor
         timestamp: new Date().toISOString()
       });
 
-      // Get history for context
-      const history = messages.map(m => ({
-        role: m.role,
-        parts: [{ text: m.content }]
-      }));
+      // Get history for context (excluding the message we just added if it's already in the state)
+      const history = messages
+        .filter(m => m.content !== userMsg || (m.timestamp && new Date(m.timestamp).getTime() < Date.now() - 1000))
+        .map(m => ({
+          role: m.role,
+          parts: [{ text: m.content }]
+        }));
 
       // Get AI response
       const aiResponse = await getMentorResponse(userMsg, history, profile);

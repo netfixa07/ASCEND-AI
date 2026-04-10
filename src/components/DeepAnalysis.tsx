@@ -25,7 +25,7 @@ export default function DeepAnalysis() {
       // Update history for Gemini
       setHistory(prev => [...prev, 
         { role: 'user', parts: [{ text: problem }] },
-        { role: 'model', parts: [{ text: JSON.stringify(analysis) }] }
+        { role: 'model', parts: [{ text: analysis.analysis }] }
       ]);
 
       // Save to profile history for pattern tracking

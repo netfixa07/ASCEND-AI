@@ -155,6 +155,59 @@
         "category": { "type": "string" }
       },
       "required": ["uid", "title", "startDate", "progress"]
+    },
+    "Mission": {
+      "title": "Mission",
+      "description": "Short-term strategic tasks for the user.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "objective": { "type": "string" },
+        "benefit": { "type": "string" },
+        "xp": { "type": "number" },
+        "category": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "deadline": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "title", "completed"]
+    },
+    "PsychologistSession": {
+      "title": "Psychologist Session",
+      "description": "Chat history with the Dra. Elena (AI Psychologist).",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": { "type": "string", "enum": ["user", "model"] },
+              "content": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        "lastUpdate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "messages", "lastUpdate"]
+    },
+    "FocusSession": {
+      "title": "Focus Session",
+      "description": "Records of deep work sessions.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "duration": { "type": "number" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "category": { "type": "string" },
+        "completed": { "type": "boolean" }
+      },
+      "required": ["uid", "duration", "startTime"]
     }
   },
   "firestore": {
@@ -189,6 +242,18 @@
     "/emotionalLogs/{logId}": {
       "schema": "EmotionalLog",
       "description": "User emotional check-in history."
+    },
+    "/missions/{missionId}": {
+      "schema": "Mission",
+      "description": "User strategic missions."
+    },
+    "/psychologistSessions/{sessionId}": {
+      "schema": "PsychologistSession",
+      "description": "Chat history with AI Psychologist."
+    },
+    "/focusSessions/{sessionId}": {
+      "schema": "FocusSession",
+      "description": "Deep work session records."
     }
   }
 }
